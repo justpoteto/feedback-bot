@@ -1,0 +1,4 @@
+aiogram
+dotenv
+asyncpg
+flask
