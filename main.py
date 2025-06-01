@@ -213,13 +213,13 @@ async def on_message(message: Message) -> None:
 
         message_data = {}
         if message.text:
-            message_data = {"type": "text", "text": message.text + suffix}
+            message_data = {"type": "text", "text": message.html_text + suffix}
             sent_msg = await bot.send_message(
                 GROUP_ID, message_data["text"], reply_markup=builder.as_markup()
             )
         elif message.photo:
             file_id = message.photo[-1].file_id
-            caption = (message.caption or "") + suffix
+            caption = (message.html_text or "") + suffix
             message_data = {"type": "photo", "file_id": file_id, "caption": caption}
             sent_msg = await bot.send_photo(
                 GROUP_ID,
@@ -229,7 +229,7 @@ async def on_message(message: Message) -> None:
             )
         elif message.audio:
             file_id = message.audio.file_id
-            caption = (message.caption or "") + suffix
+            caption = (message.html_text or "") + suffix
             message_data = {"type": "audio", "file_id": file_id, "caption": caption}
             sent_msg = await bot.send_audio(
                 GROUP_ID,
@@ -239,7 +239,7 @@ async def on_message(message: Message) -> None:
             )
         elif message.animation:
             file_id = message.animation.file_id
-            caption = (message.caption or "") + suffix
+            caption = (message.html_text or "") + suffix
             message_data = {"type": "animation", "file_id": file_id, "caption": caption}
             sent_msg = await bot.send_animation(
                 GROUP_ID,
@@ -249,7 +249,7 @@ async def on_message(message: Message) -> None:
             )
         elif message.video:
             file_id = message.video.file_id
-            caption = (message.caption or "") + suffix
+            caption = (message.html_text or "") + suffix
             message_data = {"type": "video", "file_id": file_id, "caption": caption}
             sent_msg = await bot.send_video(
                 GROUP_ID,
@@ -319,6 +319,7 @@ async def process_media_group_after_delay(media_group_id: str, suffix: str):
 async def handle_accept_deny(callback: CallbackQuery):
     button_msg_id = callback.message.message_id
     message_data, user_id = await get_forward_relation(button_msg_id)
+
     if callback.data == "accept" and message_data:
         if message_data["type"] == "text":
             await bot.send_message(CHANNEL_ID, message_data["text"])
@@ -374,27 +375,6 @@ async def handle_accept_deny(callback: CallbackQuery):
         except:
             pass
 
-        if callback.message.caption:
-            await callback.message.edit_caption(
-                f"{callback.message.caption}\n✅ {callback.from_user.full_name}"
-            )
-
-        elif callback.message.text:
-            await callback.message.edit_text(
-                f"{callback.message.text}\n✅ {callback.from_user.full_name}"
-            )
-
-    else:
-        if callback.message.caption:
-            await callback.message.edit_caption(
-                f"{callback.message.caption}\n❌ {callback.from_user.full_name}"
-            )
-
-        elif callback.message.text:
-            await callback.message.edit_text(
-                f"{callback.message.text}\n❌ {callback.from_user.full_name}"
-            )
-
     is_banned = await is_user_banned(user_id) if user_id else False
     builder = InlineKeyboardBuilder()
     builder.add(
@@ -403,7 +383,40 @@ async def handle_accept_deny(callback: CallbackQuery):
             callback_data="unban" if is_banned else "ban",
         )
     )
+
+    if callback.data == "accept" and message_data:
+        content = callback.message.html_text
+        new_content = (
+            content + f"\n✅ Опубликовано {html.quote(callback.from_user.full_name)}"
+        )
+        if callback.message.caption:
+            await bot.edit_message_caption(
+                chat_id=callback.message.chat.id,
+                message_id=callback.message.message_id,
+                caption=new_content,
+            )
+
+        elif callback.message.text:
+            await callback.message.edit_text(new_content)
+
+    else:
+        content = callback.message.html_text
+        new_content = (
+            content + f"\n❌ Отклонён {html.quote(callback.from_user.full_name)}"
+        )
+        if callback.message.caption:
+            await bot.edit_message_caption(
+                chat_id=callback.message.chat.id,
+                message_id=callback.message.message_id,
+                caption=new_content,
+                parse_mode="HTML",
+            )
+
+        elif callback.message.text:
+            await callback.message.edit_text(new_content)
+
     await callback.message.edit_reply_markup(reply_markup=builder.as_markup())
+
     await callback.answer()
 
 
