@@ -409,7 +409,6 @@ async def handle_accept_deny(callback: CallbackQuery):
                 chat_id=callback.message.chat.id,
                 message_id=callback.message.message_id,
                 caption=new_content,
-                parse_mode="HTML",
             )
 
         elif callback.message.text:
